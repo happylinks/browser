@@ -45,12 +45,14 @@ it('should call the authorization endpoint when creating a room', async () => {
   expect(docScope.isDone()).toBeTruthy();
 });
 
-test('room gets called with bearer token', async () => {
+test('room emits authenticate call', async () => {
   mockAuthEndpoint();
   mockDocumentEndpoint();
+
+  const mockEmit = jest.fn();
   const mock = jest.spyOn(Sockets, 'newSocket').mockImplementation(() => {
     // @ts-ignore
-    return { on: jest.fn() } as SocketIOClient.Socket;
+    return { on: jest.fn(), emit: mockEmit } as SocketIOClient.Socket;
   }).mock;
 
   const client = new RoomServiceClient({
@@ -60,19 +62,23 @@ test('room gets called with bearer token', async () => {
   await room.init();
 
   const urls = mock.calls.map(([url]) => url);
-  const args = mock.calls.map(([_, args]) => args);
 
   expect(uniq(urls.sort())).toStrictEqual(
     [
-      'https://api.roomservice.dev/v1/doc',
-      'https://api.roomservice.dev/v1/presence',
+      'https://aws.roomservice.dev/v1/doc',
+      'https://aws.roomservice.dev/v1/presence',
     ].sort()
   );
 
-  // @ts-ignore because bad typings make me sad
-  expect(args[0].transportOptions.polling.extraHeaders.authorization).toBe(
-    'Bearer short-lived-token'
-  );
+  expect(mockEmit.mock.calls[0]).toEqual([
+    'authenticate',
+    {
+      payload: 'short-lived-token',
+      meta: {
+        roomId: 'my-room-id',
+      },
+    },
+  ]);
 });
 
 test('room.publish() can change a document', async () => {

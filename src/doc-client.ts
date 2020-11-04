@@ -32,7 +32,7 @@ export default class DocClient<T extends Obj> {
   private _socket?: SocketIOClient.Socket;
   private _roomId?: string;
   private _doc?: Doc<T>;
-  private _actorId?: string;
+  private _actorId?: string | null;
   private _defaultDoc?: T;
   private _authorized?: Promise<boolean>;
 
@@ -66,12 +66,13 @@ export default class DocClient<T extends Obj> {
     return this.createDoc(actorId, state);
   }
 
-  private createDoc(actorId: string, state?: T) {
+  private createDoc(actorId: string | null, state?: T) {
     if (this._doc) {
       return this._doc;
     }
 
-    const defaultDoc = Automerge.from(state || ({} as T), { actorId });
+    const params = actorId ? { actorId } : undefined;
+    const defaultDoc = Automerge.from(state || ({} as T), params);
 
     // Automerge technically supports sending multiple docs
     // over the wire at the same time, but for simplicity's sake
@@ -151,7 +152,7 @@ export default class DocClient<T extends Obj> {
     });
 
     // Immediately attempt to authorize via traditional auth
-    this._authorized = authorizeSocket(this._socket, session.token);
+    this._authorized = authorizeSocket(this._socket, session.token, room.id);
 
     // Required connect handler
     Sockets.on(this._socket, 'connect', () => {
@@ -219,7 +220,7 @@ export default class DocClient<T extends Obj> {
   }
 
   /**
-   * Manually goes offline
+   * Manually go offline
    */
   disconnect() {
     if (typeof window === 'undefined') {
@@ -298,6 +299,14 @@ export default class DocClient<T extends Obj> {
           callback(this._doc);
         }
       } catch (err) {
+        // Ignore Automerge double-apply errors
+        if (
+          (err as Error).message &&
+          err.message.includes('Inconsistent reuse of sequence number')
+        ) {
+          return;
+        }
+
         console.error(err);
       }
     };
