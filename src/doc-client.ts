@@ -233,6 +233,9 @@ export default class DocClient<T extends Obj> {
       Sockets.disconnect(this._socket);
     }
     this._socket = undefined;
+    this._onUpdateSocketCallback = undefined;
+    this._onConnectSocketCallback = undefined;
+    this._onDisconnectSocketCallback = undefined;
   }
 
   onSetDoc(callback: (state: Readonly<any>) => any) {
