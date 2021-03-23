@@ -39,6 +39,7 @@ export default class DocClient<T extends Obj> {
   // We define this as a local variable to make testing easier
   _socketURL: string;
 
+  private _onSetDocCallback?: (doc: Doc<T>) => any;
   private _onUpdateSocketCallback?: (data: string) => any;
   private _onConnectSocketCallback?: () => any;
   private _onDisconnectSocketCallback?: () => any;
@@ -234,6 +235,7 @@ export default class DocClient<T extends Obj> {
       Sockets.disconnect(this._socket);
     }
     this._socket = undefined;
+    this._onSetDocCallback = undefined;
     this._onUpdateSocketCallback = undefined;
     this._onConnectSocketCallback = undefined;
     this._onDisconnectSocketCallback = undefined;
@@ -316,6 +318,8 @@ export default class DocClient<T extends Obj> {
       this._onUpdateSocketCallback = socketCallback;
       return;
     }
+
+    this._onSetDocCallback = callback;
 
     Sockets.on(this._socket, 'sync_room_state', socketCallback);
   }
@@ -440,6 +444,11 @@ export default class DocClient<T extends Obj> {
     this._doc = newDoc;
     this._saveOffline('default', newDoc);
     this._peer.notify(newDoc);
+
+    /* Optimistic set doc */
+    if (this._onSetDocCallback) {
+      this._onSetDocCallback(newDoc);
+    }
 
     return newDoc as D;
   }
