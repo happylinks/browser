@@ -313,13 +313,13 @@ export default class DocClient<T extends Obj> {
       }
     };
 
+    this._onSetDocCallback = callback;
+
     // If we're offline, just wait till we're back online to assign this callback
     if (!this._socket) {
       this._onUpdateSocketCallback = socketCallback;
       return;
     }
-
-    this._onSetDocCallback = callback;
 
     Sockets.on(this._socket, 'sync_room_state', socketCallback);
   }
