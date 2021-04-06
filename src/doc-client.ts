@@ -461,6 +461,11 @@ export default class DocClient<T extends Obj> {
       this._saveOffline('default', newDoc);
       this._peer.notify(newDoc);
 
+      /* Optimistic set doc */
+      if (this._onSetDocCallback) {
+        this._onSetDocCallback(newDoc);
+      }
+
       return newDoc;
     } else {
       return this._doc;
@@ -474,6 +479,11 @@ export default class DocClient<T extends Obj> {
       this._doc = newDoc;
       this._saveOffline('default', newDoc);
       this._peer.notify(newDoc);
+
+      /* Optimistic set doc */
+      if (this._onSetDocCallback) {
+        this._onSetDocCallback(newDoc);
+      }
 
       return newDoc;
     } else {
